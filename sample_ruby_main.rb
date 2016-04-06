@@ -3,57 +3,59 @@ load 'sonic-processing.rb'
 
 the_code = <<EOC
 def setup
-  size 200, 200
-  background 0
+  size displayWidth, displayHeight, P2D
   no_stroke
   smooth
   @rotation = 0
 end
 
 def draw
+  background 0
   #background 200
   fill 0, 20
   rect 0, 0, width, height
 
-  translate width/2, height/2
-  rotate @rotation
+  5.times do
+    translate rand(width/2), rand(height/2)
+    rotate rand(@rotation)
 
-  fill 255
-  ellipse 0, -60, 20, 20
-
-  @rotation += 0.1
+    fill rand(255)
+    ellipse rand(60), height/2 -rand(60), rand(100), rand(100)
+  end
+  @rotation += 1
 end
 EOC
 
 the_2nd_code = <<EOC
 def setup
-  size 200, 200
-  background 0
+  size displayWidth, displayHeight, P2D
   no_stroke
   smooth
   @rotation = 0
 end
 
 def draw
-  background 200
+  #background 0
+  background 100
   fill 0, 20
   rect 0, 0, width, height
 
-  translate width/2, height/2
-  rotate @rotation
+  5.times do
+    translate rand(width/2), rand(height/2)
+    rotate rand(@rotation)
 
-  fill 255
-  ellipse 0, -60, 20, 20
-
-  @rotation += 0.1
+    fill rand(255)
+    ellipse rand(60), height/2 -rand(60), rand(100), rand(100)
+  end
+  @rotation += 1
 end
 EOC
 
 Thread.new do
-  start_sketch the_code
+  rp5_sketch the_code
 end
 puts '*** sleep while jirb is starting...'
 sleep 10
-update_sketch the_2nd_code
+rp5_sketch the_2nd_code
 $irb_stdin.close
 sleep 1
