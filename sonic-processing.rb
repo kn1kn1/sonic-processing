@@ -28,18 +28,50 @@ end
 EOT
 $jruby_jar = $rp_path + '/vendors/jruby-complete-1.7.24.jar'
 
+def stop_rp5_sketch
+  unless $irb_stdin.nil?
+    begin
+      $irb_stdin.close
+    ensure
+      $irb_stdin = nil
+    end
+  end
+  return if $irb_pid.nil?
+  begin
+    Process.kill("KILL", $irb_pid)
+  rescue => e
+    puts e.message
+  ensure
+    $irb_pid = nil
+  end
+end
+
 def start_rp5_sketch(code, option = {})
-  puts '*** start_rp5_sketch'
+  puts '*** start_rp5_sketch - START'
+  log_debug '*** start_rp5_sketch - START'
   cmd = "java -jar #{$jruby_jar} -e 'load \"META-INF/jruby.home/bin/jirb\"'"
   stdin, stdout, stderr, wait_thr = Open3.popen3({ 'LANG' => 'C' }, cmd)
+  pid = wait_thr[:pid]  # pid of the started process.
+  puts "pid: #{pid}"
+  log_debug "pid: #{pid}"
+  $irb_pid = pid
   $irb_stdin = stdin
   # sketch_code = "p 'hello'"
   opts = option.collect {|k, v| "#{k}: #{v}"}.join(", ")
   sketch_code = format($start_sketch_tmpl, code, opts)
   # puts sketch_code
   stdin.puts sketch_code
-  puts stdout.read
-  puts stderr.read
+  log_debug '*** start_rp5_sketch - 0'
+  in_thread do
+    puts stdout.read
+  end
+  log_debug '*** start_rp5_sketch - 1'
+  in_thread do
+    puts stderr.read
+  end
+  log_debug '*** start_rp5_sketch - 2'
+  puts '*** start_rp5_sketch - END'
+  log_debug '*** start_rp5_sketch - END'
 end
 
 def update_rp5_sketch(code)
@@ -57,6 +89,7 @@ def rp5_sketch(code, start_option = {})
     rescue Errno::EPIPE => e
       puts e.message
       if e.message == "Broken pipe"
+        stop_rp5_sketch
         start_rp5_sketch(code, start_option)
       else
         fail e
