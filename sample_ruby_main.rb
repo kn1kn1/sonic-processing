@@ -57,5 +57,9 @@ end
 puts '*** sleep while jirb is starting...'
 sleep 10
 rp5_sketch the_2nd_code
-$irb_stdin.close
-sleep 1
+sleep 5
+puts "pid: #{$irb_pid}"
+puts '*** exit...'
+#$irb_stdin.close
+Process.kill("KILL", $irb_pid)
+sleep

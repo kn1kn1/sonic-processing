@@ -1,5 +1,7 @@
 #!/usr/bin/ruby
-require 'open3'
+#require 'open3'
+require 'pty'
+require 'expect'
 
 $rp_path = File.expand_path(File.dirname(__FILE__) + '/vendors/ruby-processing-2.6.17')
 puts $rp_path
@@ -28,18 +30,49 @@ end
 EOT
 $jruby_jar = $rp_path + '/vendors/jruby-complete-1.7.24.jar'
 
+def stop_rp5_sketch
+  unless $irb_stdin.nil?
+    $irb_stdin.close
+    $irb_stdin = nil
+  end
+  return if $irb_pid.nil?
+  Process.kill("KILL", $irb_pid)
+  $irb_pid = nil
+end
+
 def start_rp5_sketch(code, option = {})
   puts '*** start_rp5_sketch'
-  cmd = "java -jar #{$jruby_jar} -e 'load \"META-INF/jruby.home/bin/jirb\"'"
-  stdin, stdout, stderr, wait_thr = Open3.popen3({ 'LANG' => 'C' }, cmd)
-  $irb_stdin = stdin
-  # sketch_code = "p 'hello'"
-  opts = option.collect {|k, v| "#{k}: #{v}"}.join(", ")
-  sketch_code = format($start_sketch_tmpl, code, opts)
-  # puts sketch_code
-  stdin.puts sketch_code
-  puts stdout.read
-  puts stderr.read
+  log_debug '*** start_rp5_sketch'
+  cmd = "LANG=C java -jar #{$jruby_jar} -e 'load \"META-INF/jruby.home/bin/jirb\"'"
+  begin
+    PTY.spawn(cmd) do |stdout, stdin, pid|
+      $irb_pid = pid
+      puts "*** start - spwan"
+      log_debug "*** start - spwan"
+      $irb_stdin = stdin
+      opts = option.collect {|k, v| "#{k}: #{v}"}.join(", ")
+      sketch_code = format($start_sketch_tmpl, code, opts)
+      stdin.puts sketch_code
+      begin
+        # Do stuff with the output here. Just printing to show it works
+        stdout.each { |line|
+          puts line
+        }
+      rescue Errno::EIO
+        puts "Errno:EIO error, but this probably just means " +
+              "that the process has finished giving output"
+      ensure
+        puts "*** end - spwan"
+        log_debug "*** end - spwan"
+      end
+    end
+  rescue PTY::ChildExited
+    puts "The child process exited!"
+    log_debug "The child process exited!"
+  ensure
+    log_debug '*** start_rp5_sketch - END'
+    stop_rp5_sketch
+  end
 end
 
 def update_rp5_sketch(code)
@@ -199,5 +232,5 @@ def rp5_inline_sketch(start_option = {})
   rp5_sketch(sketch_code, start_option)
 
   # stop here not to execute inline code
-  stop
+  #stop
 end
