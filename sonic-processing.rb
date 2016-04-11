@@ -180,13 +180,13 @@ def ___start_rp5_sketch_open3(code, option = {})
   log_debug '*** start_rp5_sketch - START'
   cmd = "java -jar #{$jruby_jar} -e 'load \"META-INF/jruby.home/bin/jirb\"'"
   stdin, stdout, stderr, wait_thr = Open3.popen3({ 'LANG' => 'C' }, cmd)
-  pid = wait_thr[:pid]  # pid of the started process.
+  pid = wait_thr[:pid] # pid of the started process.
   puts "pid: #{pid}"
   log_debug "pid: #{pid}"
   $irb_pid = pid
   $irb_stdin = stdin
   # sketch_code = "p 'hello'"
-  opts = option.collect {|k, v| "#{k}: #{v}"}.join(", ")
+  opts = option.collect { |k, v| "#{k}: #{v}" }.join(', ')
   sketch_code = format($start_sketch_tmpl, code, opts)
   # puts sketch_code
   stdin.puts sketch_code
@@ -211,10 +211,6 @@ def ___start_rp5_sketch_pty(code, option = {})
       $irb_pid = pid
       ___debug '*** start - spwan'
       $irb_stdin = stdin
-      Signal.trap("QUIT"){
-        ___info "QUIT"
-        stop_rp5_sketch
-      }
 
       opts = option.collect { |k, v| "#{k}: #{v}" }.join(', ')
       sketch_code = format($start_sketch_tmpl, code, opts)
@@ -290,7 +286,7 @@ def rp5_sketch(code, start_option = {})
       update_rp5_sketch(code)
     rescue Errno::EPIPE => e
       puts e.message
-      if e.message == "Broken pipe"
+      if e.message == 'Broken pipe'
         stop_rp5_sketch
         start_rp5_sketch(code, start_option)
       else
