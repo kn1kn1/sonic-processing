@@ -1,5 +1,9 @@
 #!/usr/bin/ruby
 require 'open3'
+require 'pty'
+require 'expect'
+
+$use_pty = false
 
 $rp_path = File.expand_path(File.dirname(__FILE__) + '/vendors/ruby-processing-2.6.17')
 puts $rp_path
@@ -38,7 +42,7 @@ def stop_rp5_sketch
   end
   return if $irb_pid.nil?
   begin
-    Process.kill("KILL", $irb_pid)
+    Process.kill('KILL', $irb_pid) # SIGKILL (signal 9)
   rescue => e
     puts e.message
   ensure
@@ -46,7 +50,11 @@ def stop_rp5_sketch
   end
 end
 
-def start_rp5_sketch(code, option = {})
+def set_use_pty(use_pty)
+  $use_pty = use_pty
+end
+
+def start_rp5_sketch_open3(code, option = {})
   puts '*** start_rp5_sketch - START'
   log_debug '*** start_rp5_sketch - START'
   cmd = "java -jar #{$jruby_jar} -e 'load \"META-INF/jruby.home/bin/jirb\"'"
@@ -74,6 +82,67 @@ def start_rp5_sketch(code, option = {})
   log_debug '*** start_rp5_sketch - END'
 end
 
+def ___info(msg)
+  __info msg
+  puts msg
+  log_debug msg
+end
+
+def ___debug(msg)
+  puts msg
+  log_debug msg
+end
+
+def start_rp5_sketch_pty(code, option = {})
+  ___debug '*** start_rp5_sketch'
+  cmd = "LANG=C java -jar #{$jruby_jar} -e 'load \"META-INF/jruby.home/bin/jirb\"'"
+  begin
+    PTY.spawn(cmd) do |stdout, stdin, pid|
+      $irb_pid = pid
+      ___debug '*** start - spwan'
+      $irb_stdin = stdin
+      Signal.trap("QUIT"){
+        ___info "QUIT"
+        stop_rp5_sketch
+      }
+
+      opts = option.collect { |k, v| "#{k}: #{v}" }.join(', ')
+      sketch_code = format($start_sketch_tmpl, code, opts)
+      ___debug "sketch_code: #{sketch_code}"
+      stdin.puts sketch_code
+      begin
+        # Do stuff with the output here. Just printing to show it works
+        log_debug '*** 2'
+        stdout.each do |line|
+          line = line.gsub(/\n$/, '')
+          ___info line
+        end
+      rescue Errno::EIO
+        puts 'Errno:EIO error, but this probably just means ' \
+               'that the process has finished giving output'
+      ensure
+        puts '*** end - spwan'
+        log_debug '*** end - spwan'
+      end
+    end
+  rescue PTY::ChildExited
+    ___debug 'The child process exited!'
+  ensure
+    ___debug '*** start_rp5_sketch - END'
+    stop_rp5_sketch
+  end
+end
+
+def start_rp5_sketch(code, option = {})
+  if $use_pty
+    in_thread do
+      start_rp5_sketch_pty(code, option)
+    end
+  else
+    start_rp5_sketch_open3(code, option)
+  end
+end
+
 def update_rp5_sketch(code)
   puts '*** update_rp5_sketch'
   sketch_code = format($update_sketch_tmpl, code)
@@ -92,7 +161,7 @@ def rp5_sketch(code, start_option = {})
         stop_rp5_sketch
         start_rp5_sketch(code, start_option)
       else
-        fail e
+        raise e
       end
     end
   end
@@ -148,7 +217,7 @@ module HaskapJamLoop
       if code.nil? || code.empty?
         msg = 'code is nil or empty!'
         log_error msg
-        fail msg
+        raise msg
       end
       code
     end
@@ -159,7 +228,7 @@ module HaskapJamLoop
       if matched.nil? || matched[2].nil?
         msg = "source_file_name not matched. source_file_name: #{source_file_name}"
         log_error msg
-        fail msg
+        raise msg
       end
       workspace_id = matched[2]
       log_debug("workspace_id: #{workspace_id}")
@@ -172,7 +241,7 @@ module HaskapJamLoop
       if file_name.nil? || file_name.empty?
         msg = 'file_name is nil or empty!'
         log_error msg
-        fail msg
+        raise msg
       end
 
       project_path = SonicPi::Util.project_path
@@ -180,7 +249,7 @@ module HaskapJamLoop
       if project_path.nil? || project_path.empty?
         msg = 'project_path is nil or empty!'
         log_error msg
-        fail msg
+        raise msg
       end
 
       project_path + file_name
@@ -195,13 +264,13 @@ module HaskapJamLoop
       if i < 0
         msg = "can not convert to number name: #{i}"
         log_error msg
-        fail msg
+        raise msg
       end
       name = NUMBER_NAMES.fetch(i, nil)
       if name.nil?
         msg = "can not convert to number name: #{i}"
         log_error msg
-        fail msg
+        raise msg
       end
       name
     end
@@ -226,8 +295,12 @@ def rp5_inline_sketch(start_option = {})
   log_debug "source_file_name: #{source_file_name}"
   workspace_id = extract_workspace_id(source_file_name)
   code = read_workspace(workspace_id)
-  sketch_code = code.gsub(/^(load.*sonic-processing.rb.*$)/, '#\\1')
-  sketch_code = sketch_code.gsub(/^(rp5_inline_sketch.*$)/, '#\\1')
+
+  # sketch_code = code.gsub(/^(load.*sonic-processing.rb.*$)/, '#\\1')
+  # sketch_code = sketch_code.gsub(/^(rp5_inline_sketch.*$)/, '#\\1')
+  sketch_code = code.gsub(/^(load.*sonic-processing.rb.*$)/, '')
+  sketch_code = sketch_code.gsub(/^(rp5_inline_sketch.*$)/, '')
+
   log_debug "sketch_code: #{sketch_code}"
   rp5_sketch(sketch_code, start_option)
 

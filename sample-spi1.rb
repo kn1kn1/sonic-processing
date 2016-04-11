@@ -11,7 +11,7 @@ def setup
 end
 
 def draw
-  background 0
+  background 255
   #background 255
   fill 0, 20
   rect 0, 0, width, height
@@ -28,4 +28,5 @@ end
 EOC
 
 #start_rp5_sketch the_code, {:full_screen => true}
+#stop_rp5_sketch
 rp5_sketch the_code, {:full_screen => true}
