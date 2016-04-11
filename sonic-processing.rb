@@ -306,6 +306,7 @@ def rp5_inline_sketch(start_option = {})
   # sketch_code = sketch_code.gsub(/^(rp5_inline_sketch.*$)/, '#\\1')
   sketch_code = code.gsub(/^(load.*sonic-processing.rb.*$)/, '')
   sketch_code = sketch_code.gsub(/^(rp5_inline_sketch.*$)/, '')
+  sketch_code = sketch_code.gsub(/^(set_use_pty.*$)/, '')
 
   log_debug "sketch_code: #{sketch_code}"
   rp5_sketch(sketch_code, start_option)
