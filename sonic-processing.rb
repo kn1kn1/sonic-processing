@@ -6,7 +6,7 @@ require 'expect'
 $use_pty = false
 $log_level = :debug
 
-module HaskapJamLoop
+module HaskapJam
   module Log
     extend self
 
@@ -43,7 +43,7 @@ module HaskapJamLoop
 
   module Util
     extend self
-    include HaskapJamLoop::Log
+    include HaskapJam::Log
 
     NUMBER_NAMES = %w(zero one two three four five six
                       seven eight nine).freeze unless defined?(NUMBER_NAMES)
@@ -126,8 +126,8 @@ module HaskapJamLoop
   end
 end
 
-include HaskapJamLoop::Log
-include HaskapJamLoop::Util
+include HaskapJam::Log
+include HaskapJam::Util
 
 $rp_path = File.expand_path(File.dirname(__FILE__) + '/vendors/ruby-processing-2.6.17')
 puts $rp_path
