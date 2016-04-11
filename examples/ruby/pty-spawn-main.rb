@@ -1,3 +1,4 @@
+#!/usr/bin/ruby
 require 'pty'
 require 'expect'
 

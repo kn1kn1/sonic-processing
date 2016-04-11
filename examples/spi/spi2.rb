@@ -28,4 +28,5 @@ end
 EOC
 
 #start_rp5_sketch the_code, {:full_screen => true}
+#stop_rp5_sketch
 rp5_sketch the_code, {:full_screen => true}

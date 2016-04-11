@@ -11,7 +11,7 @@ def setup
 end
 
 def draw
-  background 255
+  background 0
   #background 255
   fill 0, 20
   rect 0, 0, width, height
