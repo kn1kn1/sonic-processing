@@ -215,7 +215,17 @@ def ___start_rp5_sketch_pty(code, option = {})
       opts = option.collect { |k, v| "#{k}: #{v}" }.join(', ')
       sketch_code = format($start_sketch_tmpl, code, opts)
       ___debug "sketch_code: #{sketch_code}"
-      stdin.puts sketch_code
+
+      # WORKAROUND for some sketches which do not work properly (ortbit_inline.spi.rb etc)
+      #  change to put codes into stdin in a in_thread block.
+      ___in_thread do
+        sketch_code.each_line {|line|
+          ___debug "sketch_code line: #{line}"
+          stdin.puts line
+        }
+        #___debug "sketch_code: #{sketch_code}"
+        #stdin.puts sketch_code
+      end
       begin
         # Do stuff with the output here. Just printing to show it works
         log_debug '*** 2'
