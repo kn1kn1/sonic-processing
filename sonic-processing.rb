@@ -141,12 +141,13 @@ RP_CONFIG = (Psych.load_file(CONFIG_FILE_PATH))
 load '#{$rp_path}/lib/ruby-processing.rb'
 load '#{$rp_path}/lib/ruby-processing/app.rb'
 
+Processing::RP_CONFIG = RP_CONFIG
+Processing::App::SKETCH_PATH = defined?(ExerbRuntime) ? ExerbRuntime.filepath : $0
+
 class SonicProcessingLiveSketch < Processing::App
   %s
 end
 
-Processing::RP_CONFIG = RP_CONFIG
-Processing::App::SKETCH_PATH = defined?(ExerbRuntime) ? ExerbRuntime.filepath : $0
 SonicProcessingLiveSketch.new(%s)
 EOT
 $update_sketch_tmpl = <<EOT
